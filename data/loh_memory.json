@@ -1,0 +1,16 @@
+[
+  {
+    "name": "miak",
+    "type": "personagem",
+    "status": "canon",
+    "period": "100",
+    "yearOrder": 100,
+    "description": "muito chata",
+    "relatedEntityIds": [],
+    "subDetails": {},
+    "id": "ent-1791053246161-ewcpd",
+    "createdAt": "2026-10-03T18:47:26.160Z",
+    "updatedAt": "2026-10-03T18:47:26.160Z",
+    "history": []
+  }
+]

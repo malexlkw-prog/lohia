@@ -1,0 +1,8 @@
+{
+  "name": "LOH AI",
+  "description": "A inteligência artificial oficial do universo League Ofter High (LOH).",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
