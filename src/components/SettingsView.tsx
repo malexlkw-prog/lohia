@@ -86,7 +86,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           <Sparkles className="w-4 h-4 text-blue-400" />
           Identidade e Motor
         </h2>
-
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
           <div>
             <span className="text-zinc-500 block mb-1">Nome da Inteligência</span>
@@ -94,17 +93,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               LOH AI (Oficial)
             </div>
           </div>
-
           <div>
             <span className="text-zinc-500 block mb-1">Modelo de Raciocínio</span>
             <div className="p-2.5 rounded-lg bg-zinc-900 border border-zinc-800 text-white font-medium">
-              gemini-3.8-flash (Google GenAI)
+              Google Gemini (Auto-Fallback / GEMINI_MODEL)
             </div>
           </div>
         </div>
-
         <div className="pt-2 text-[11px] text-zinc-400">
-          Criada especificamente para o universo <strong className="text-zinc-300">League Ofter High (LOH)</strong> de Marcos. Acesso restrito às leis e cânone oficiais.
+          Criada especificamente para o universo <strong className="text-zinc-300">League Ofter High (LOH)</strong> de Marcos. Modos de operação: <span className="text-blue-400 font-medium">Conhecimento</span> (explicações canônicas), <span className="text-purple-400 font-medium">Assistente</span> (continuidade e lutas) e <span className="text-amber-400 font-medium">Produtor</span> (desenvolvimento de filmes, séries e projetos audiovisuais).
         </div>
       </div>
 

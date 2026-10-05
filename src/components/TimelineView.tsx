@@ -37,7 +37,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
         </div>
         <button
           onClick={onAddEvent}
-          className="self-start sm:self-auto text-xs font-medium text-blue-400 hover:text-white bg-blue-950/40 hover:bg-blue-900/40 border border-blue-800/50 px-3.5 py-2 rounded-lg transition-colors"
+          className="self-start sm:self-auto text-xs font-medium text-blue-400 hover:text-white bg-blue-950/40 hover:bg-blue-900/40 border border-blue-800/50 px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
         >
           + Adicionar Evento
         </button>
@@ -79,11 +79,11 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                     <span className="text-blue-400 font-semibold">
                       {item.period || 'Período Indefinido'}
                     </span>
-                    <span aria-hidden="true">·</span>
+                    <span aria-hidden="true">•</span>
                     <span className="capitalize">{item.type}</span>
                     {isConflicting && (
                       <>
-                        <span aria-hidden="true">·</span>
+                        <span aria-hidden="true">•</span>
                         <span className="text-amber-400 flex items-center gap-1">
                           <AlertTriangle className="w-3 h-3" /> Conflito Registrado
                         </span>
@@ -91,7 +91,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                     )}
                     {relatedCount > 0 && (
                       <>
-                        <span aria-hidden="true">·</span>
+                        <span aria-hidden="true">•</span>
                         <span>{relatedCount} conexões</span>
                       </>
                     )}

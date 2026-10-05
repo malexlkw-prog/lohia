@@ -1,6 +1,6 @@
 import React from 'react';
-import { Contradiction, LoreEntity } from '../types/lore';
-import { AlertTriangle, X, Check, ArrowRight } from 'lucide-react';
+import { Contradiction } from '../types/lore';
+import { AlertTriangle, X, Check } from 'lucide-react';
 
 interface ContradictionsModalProps {
   contradictions: Contradiction[];
@@ -39,7 +39,7 @@ export const ContradictionsModal: React.FC<ContradictionsModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800/50 transition-colors"
+            className="p-2 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800/50 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -61,7 +61,7 @@ export const ContradictionsModal: React.FC<ContradictionsModalProps> = ({
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <span className="text-xs font-mono uppercase text-amber-400">
-                      ⚠ Divergência Detectada
+                      Divergência Detectada
                     </span>
                     <h3 className="text-base font-semibold text-white mt-0.5">
                       {item.title}
@@ -72,7 +72,7 @@ export const ContradictionsModal: React.FC<ContradictionsModalProps> = ({
                   </div>
                   <button
                     onClick={() => onInspectEntity(item.entityId)}
-                    className="text-xs text-blue-400 hover:text-blue-300 underline shrink-0"
+                    className="text-xs text-blue-400 hover:text-blue-300 underline shrink-0 cursor-pointer"
                   >
                     Ver detalhes
                   </button>
@@ -92,7 +92,7 @@ export const ContradictionsModal: React.FC<ContradictionsModalProps> = ({
                     </div>
                     <button
                       onClick={() => onResolve(item.id, item.versionA, item.entityId)}
-                      className="w-full py-1.5 px-3 rounded-md bg-zinc-800 hover:bg-blue-600 text-white text-xs font-medium transition-colors"
+                      className="w-full py-1.5 px-3 rounded-md bg-zinc-800 hover:bg-blue-600 text-white text-xs font-medium transition-colors cursor-pointer"
                     >
                       Definir como Cânone Oficial
                     </button>
@@ -110,7 +110,7 @@ export const ContradictionsModal: React.FC<ContradictionsModalProps> = ({
                     </div>
                     <button
                       onClick={() => onResolve(item.id, item.versionB, item.entityId)}
-                      className="w-full py-1.5 px-3 rounded-md bg-zinc-800 hover:bg-blue-600 text-white text-xs font-medium transition-colors"
+                      className="w-full py-1.5 px-3 rounded-md bg-zinc-800 hover:bg-blue-600 text-white text-xs font-medium transition-colors cursor-pointer"
                     >
                       Definir como Cânone Oficial
                     </button>

@@ -7,16 +7,18 @@ interface MemoryViewProps {
   onSelectEntity: (entity: LoreEntity) => void;
   onAddNew: () => void;
   onOpenTimeline: () => void;
-  onDeleteEntity?: (id: string) => void;
+  onDeleteEntity?: (id: string, name?: string) => void;
 }
 
-const CATEGORIES: { key: EntityType | 'relacoes'; label: string }[] = [
+const CATEGORIES: { key: string; label: string }[] = [
   { key: 'personagem', label: 'Personagens' },
   { key: 'evento', label: 'Eventos' },
-  { key: 'local', label: 'Locais' },
-  { key: 'organizacao', label: 'Organizações' },
+  { key: 'producao', label: 'Produções & Obras' },
   { key: 'poder', label: 'Poderes' },
-  { key: 'obra', label: 'Obras' },
+  { key: 'organizacao', label: 'Organizações' },
+  { key: 'local', label: 'Locais' },
+  { key: 'lore', label: 'Lore & Mitologia' },
+  { key: 'ideia', label: 'Ideias & Drafts' },
   { key: 'relacoes', label: 'Relações' },
 ];
 
@@ -28,7 +30,7 @@ export const MemoryView: React.FC<MemoryViewProps> = ({
   onDeleteEntity,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<EntityType | 'relacoes' | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<CanonStatus | 'all'>('all');
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
@@ -37,23 +39,27 @@ export const MemoryView: React.FC<MemoryViewProps> = ({
     const counts: Record<string, number> = {
       personagem: 0,
       evento: 0,
+      producao: 0,
       local: 0,
       organizacao: 0,
       poder: 0,
-      obra: 0,
-      outro: 0,
+      lore: 0,
+      ideia: 0,
       relacoes: 0,
     };
-
     entities.forEach(e => {
-      if (counts[e.type] !== undefined) {
+      if (e.type === 'producao' || e.type === 'filme' || e.type === 'serie' || e.type === 'webserie' || e.type === 'episodio' || e.type === 'obra') {
+        counts.producao++;
+      } else if (e.type === 'ideia' || e.status === 'rascunho' || e.status === 'proposta') {
+        counts.ideia++;
+        if (counts[e.type] !== undefined) counts[e.type]++;
+      } else if (counts[e.type] !== undefined) {
         counts[e.type]++;
       }
       if (e.relatedEntityIds && e.relatedEntityIds.length > 0) {
         counts.relacoes += e.relatedEntityIds.length;
       }
     });
-
     return counts;
   }, [entities]);
 
@@ -62,7 +68,15 @@ export const MemoryView: React.FC<MemoryViewProps> = ({
     return entities.filter(e => {
       // Category filter
       if (selectedCategory && selectedCategory !== 'relacoes') {
-        if (e.type !== selectedCategory) return false;
+        if (selectedCategory === 'producao') {
+          const isProd = e.type === 'producao' || e.type === 'filme' || e.type === 'serie' || e.type === 'webserie' || e.type === 'episodio' || e.type === 'obra';
+          if (!isProd) return false;
+        } else if (selectedCategory === 'ideia') {
+          const isIdea = e.type === 'ideia' || e.status === 'rascunho' || e.status === 'proposta';
+          if (!isIdea) return false;
+        } else {
+          if (e.type !== selectedCategory) return false;
+        }
       }
       if (selectedCategory === 'relacoes') {
         if (!e.relatedEntityIds || e.relatedEntityIds.length === 0) return false;
@@ -104,7 +118,6 @@ export const MemoryView: React.FC<MemoryViewProps> = ({
             Memória ({entities.length})
           </h1>
         </div>
-
         <div className="flex items-center gap-2.5">
           <button
             onClick={onAddNew}
@@ -129,7 +142,7 @@ export const MemoryView: React.FC<MemoryViewProps> = ({
         {searchQuery && (
           <button
             onClick={() => setSearchQuery('')}
-            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-zinc-500 hover:text-white"
+            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-zinc-500 hover:text-white cursor-pointer"
           >
             Limpar
           </button>
@@ -143,18 +156,16 @@ export const MemoryView: React.FC<MemoryViewProps> = ({
           {selectedCategory && (
             <button
               onClick={() => setSelectedCategory(null)}
-              className="text-blue-400 hover:text-blue-300 capitalize lowercase"
+              className="text-blue-400 hover:text-blue-300 capitalize cursor-pointer lowercase"
             >
               Ver todas ({entities.length})
             </button>
           )}
         </div>
-
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
           {CATEGORIES.map(cat => {
             const count = categoryCounts[cat.key] || 0;
             const isSelected = selectedCategory === cat.key;
-
             return (
               <button
                 key={cat.key}
@@ -167,7 +178,7 @@ export const MemoryView: React.FC<MemoryViewProps> = ({
               >
                 <div className="text-sm font-medium">{cat.label}</div>
                 <div className="text-xs font-mono text-zinc-500 mt-1">
-                  {cat.label} · {count}
+                  {cat.label} • {count}
                 </div>
               </button>
             );
@@ -182,7 +193,7 @@ export const MemoryView: React.FC<MemoryViewProps> = ({
               Linha do tempo
             </div>
             <div className="text-xs font-mono text-zinc-500 mt-1">
-              Cronologia · {entities.filter(e => e.type === 'evento').length}
+              Cronologia • {entities.filter(e => e.type === 'evento').length}
             </div>
           </button>
         </div>
@@ -197,6 +208,7 @@ export const MemoryView: React.FC<MemoryViewProps> = ({
           {[
             { id: 'all', label: 'Todos' },
             { id: 'canon', label: 'Cânone' },
+            { id: 'proposta', label: 'Propostas' },
             { id: 'rascunho', label: 'Rascunhos' },
             { id: 'conflitante', label: 'Conflitantes' },
             { id: 'antiga', label: 'Antigas' },
@@ -221,7 +233,6 @@ export const MemoryView: React.FC<MemoryViewProps> = ({
         <div className="text-xs font-mono text-zinc-500 uppercase tracking-wider mb-2">
           {filteredEntities.length} registros exibidos
         </div>
-
         {filteredEntities.length === 0 ? (
           <div className="text-center py-16 px-4 rounded-xl border border-zinc-800/60 bg-zinc-900/20 space-y-3">
             <Database className="w-8 h-8 text-zinc-600 mx-auto" />
@@ -249,7 +260,6 @@ export const MemoryView: React.FC<MemoryViewProps> = ({
           filteredEntities.map(item => {
             const isConflicting = item.status === 'conflitante';
             const isConfirmingThis = pendingDeleteId === item.id;
-
             return (
               <div
                 key={item.id}
@@ -264,44 +274,48 @@ export const MemoryView: React.FC<MemoryViewProps> = ({
                   {/* Clean typographic metadata (Zero pills) */}
                   <div className="flex items-center gap-2 text-xs font-mono text-zinc-400">
                     <span className="capitalize text-blue-400 font-medium">{item.type}</span>
-                    <span aria-hidden="true">·</span>
+                    <span aria-hidden="true">•</span>
                     <span className={item.status === 'canon' ? 'text-zinc-300' : isConflicting ? 'text-amber-400' : 'text-zinc-500'}>
                       {item.status === 'canon' ? 'Cânone' : item.status === 'conflitante' ? 'Conflito' : item.status}
                     </span>
                     {item.period && (
                       <>
-                        <span aria-hidden="true">·</span>
+                        <span aria-hidden="true">•</span>
                         <span>{item.period}</span>
                       </>
                     )}
                     {item.relatedEntityIds && item.relatedEntityIds.length > 0 && (
                       <>
-                        <span aria-hidden="true">·</span>
+                        <span aria-hidden="true">•</span>
                         <span>{item.relatedEntityIds.length} conexões</span>
                       </>
                     )}
                   </div>
-
                   <h3 className="text-base font-semibold text-white group-hover:text-blue-300 transition-colors flex items-center gap-2">
                     {item.name}
                     {isConflicting && <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />}
                   </h3>
-
                   <p className="text-xs text-zinc-400 line-clamp-1 leading-relaxed">
                     {item.description}
                   </p>
                 </div>
-
                 <div className="flex items-center gap-2 shrink-0">
                   {/* Inline quick delete action */}
                   {onDeleteEntity && (
-                    <div onClick={e => e.stopPropagation()}>
+                    <div
+                      onClick={e => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                      }}
+                    >
                       {isConfirmingThis ? (
-                        <div className="flex items-center gap-1.5 bg-zinc-900 p-1 rounded-lg border border-red-900/50">
+                        <div className="flex items-center gap-1.5 bg-zinc-900 p-1 rounded-lg border border-red-900/50 shadow-lg">
                           <button
                             type="button"
-                            onClick={() => {
-                              onDeleteEntity(item.id);
+                            onClick={e => {
+                              e.stopPropagation();
+                              e.preventDefault();
+                              onDeleteEntity(item.id, item.name);
                               setPendingDeleteId(null);
                             }}
                             className="px-2 py-1 bg-red-600 hover:bg-red-500 text-white rounded text-[11px] font-semibold transition-colors cursor-pointer"
@@ -310,7 +324,11 @@ export const MemoryView: React.FC<MemoryViewProps> = ({
                           </button>
                           <button
                             type="button"
-                            onClick={() => setPendingDeleteId(null)}
+                            onClick={e => {
+                              e.stopPropagation();
+                              e.preventDefault();
+                              setPendingDeleteId(null);
+                            }}
                             className="px-1.5 py-1 text-zinc-400 hover:text-white rounded text-[11px] transition-colors cursor-pointer"
                           >
                             Não
@@ -319,7 +337,11 @@ export const MemoryView: React.FC<MemoryViewProps> = ({
                       ) : (
                         <button
                           type="button"
-                          onClick={() => setPendingDeleteId(item.id)}
+                          onClick={e => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            setPendingDeleteId(item.id);
+                          }}
                           className="p-2 text-zinc-500 hover:text-red-400 hover:bg-red-950/20 rounded-lg transition-colors cursor-pointer"
                           title={`Excluir ${item.name}`}
                         >
@@ -328,7 +350,6 @@ export const MemoryView: React.FC<MemoryViewProps> = ({
                       )}
                     </div>
                   )}
-
                   <ArrowRight className="w-4 h-4 text-zinc-600 group-hover:text-blue-400 transition-colors shrink-0" />
                 </div>
               </div>

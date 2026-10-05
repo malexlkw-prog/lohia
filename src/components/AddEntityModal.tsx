@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { EntityType, CanonStatus, LoreEntity } from '../types/lore';
-import { X, Check } from 'lucide-react';
+import { X, Check, Zap, Plus } from 'lucide-react';
 
 interface AddEntityModalProps {
   initialEntity?: LoreEntity | null;
@@ -13,10 +13,17 @@ interface AddEntityModalProps {
 const ENTITY_TYPE_LABELS: { type: EntityType; label: string; desc: string }[] = [
   { type: 'personagem', label: 'Personagem', desc: 'Heróis, vilões, mestres, deuses e figuras históricas.' },
   { type: 'evento', label: 'Evento', desc: 'Batalhas, cataclismos, acordos, ascensões e mortes.' },
-  { type: 'local', label: 'Local', desc: 'Reinos, cidadelas sagradas, continentes e dimensões.' },
+  { type: 'producao', label: 'Produção Audiovisual', desc: 'Projetos audiovisuais, especiais e derivados da franquia.' },
+  { type: 'filme', label: 'Filme', desc: 'Longas-metragens, animações ou curtas do universo LOH.' },
+  { type: 'serie', label: 'Série', desc: 'Séries completas, temporadas e arcos de episódios.' },
+  { type: 'webserie', label: 'Web Série', desc: 'Web séries digitais, websódios e projetos contínuos.' },
+  { type: 'episodio', label: 'Episódio', desc: 'Episódios individuais com sinopse e consequências.' },
   { type: 'organizacao', label: 'Organização', desc: 'Facções, clãs, ordens arcanas, reinos e assembleias.' },
+  { type: 'local', label: 'Local', desc: 'Reinos, cidadelas sagradas, continentes e dimensões.' },
   { type: 'poder', label: 'Poder', desc: 'Habilidades, magias, técnicas e forças primordiais.' },
-  { type: 'obra', label: 'Obra', desc: 'Crônicas, livros sagrados, lendas registradas e tomos.' },
+  { type: 'lore', label: 'Lore & Mitologia', desc: 'História do mundo, regras cósmicas e mitos fundamentais.' },
+  { type: 'ideia', label: 'Ideia / Rascunho', desc: 'Conceitos em desenvolvimento, drafts e propostas de roteiro.' },
+  { type: 'obra', label: 'Obra / Tomo', desc: 'Crônicas, livros sagrados, lendas registradas e tomos.' },
   { type: 'outro', label: 'Outro', desc: 'Artefatos, relíquias, conceitos cósmicos e profecias.' },
 ];
 
@@ -39,10 +46,14 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
   const [participants, setParticipants] = useState('');
   const [consequences, setConsequences] = useState('');
   const [locations, setLocations] = useState('');
-  const [powers, setPowers] = useState('');
+  const [selectedPowers, setSelectedPowers] = useState<string[]>([]);
+  const [customPowerInput, setCustomPowerInput] = useState('');
   const [role, setRole] = useState('');
   const [relatedIds, setRelatedIds] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
+
+  // Registered power entities from the database (Aba Poderes)
+  const registeredPowers = allEntities.filter(e => e.type === 'poder');
 
   useEffect(() => {
     if (initialEntity) {
@@ -54,7 +65,8 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
       setParticipants(initialEntity.subDetails?.participants?.join(', ') || '');
       setConsequences(initialEntity.subDetails?.consequences || '');
       setLocations(initialEntity.subDetails?.locations?.join(', ') || '');
-      setPowers(initialEntity.subDetails?.powers?.join(', ') || '');
+      setSelectedPowers(initialEntity.subDetails?.powers || []);
+      setCustomPowerInput('');
       setRole(initialEntity.subDetails?.role || '');
       setRelatedIds(initialEntity.relatedEntityIds || []);
       setNotes(initialEntity.subDetails?.notes || '');
@@ -67,7 +79,8 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
       setParticipants('');
       setConsequences('');
       setLocations('');
-      setPowers('');
+      setSelectedPowers([]);
+      setCustomPowerInput('');
       setRole('');
       setRelatedIds([]);
       setNotes('');
@@ -78,6 +91,40 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
 
   const handleTypeSelect = (type: EntityType) => {
     setSelectedType(type);
+  };
+
+  const handleAddCustomPower = () => {
+    if (!customPowerInput.trim()) return;
+    const newItems = customPowerInput
+      .split(',')
+      .map(p => p.trim())
+      .filter(Boolean);
+    const combined = Array.from(new Set([...selectedPowers, ...newItems]));
+    setSelectedPowers(combined);
+    setCustomPowerInput('');
+  };
+
+  const handleToggleRegisteredPower = (powerEntity: LoreEntity) => {
+    const isAlreadySelected = selectedPowers.some(
+      p => p.toLowerCase() === powerEntity.name.toLowerCase()
+    );
+    if (isAlreadySelected) {
+      setSelectedPowers(prev => prev.filter(p => p.toLowerCase() !== powerEntity.name.toLowerCase()));
+      setRelatedIds(prev => prev.filter(id => id !== powerEntity.id));
+    } else {
+      setSelectedPowers(prev => [...prev, powerEntity.name]);
+      if (!relatedIds.includes(powerEntity.id)) {
+        setRelatedIds(prev => [...prev, powerEntity.id]);
+      }
+    }
+  };
+
+  const handleRemovePower = (powerName: string) => {
+    setSelectedPowers(prev => prev.filter(p => p !== powerName));
+    const matchedEntity = registeredPowers.find(e => e.name.toLowerCase() === powerName.toLowerCase());
+    if (matchedEntity) {
+      setRelatedIds(prev => prev.filter(id => id !== matchedEntity.id));
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -99,6 +146,13 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
       }
     }
 
+    // Include any typed power that wasn't submitted via plus button
+    let finalPowers = [...selectedPowers];
+    if (customPowerInput.trim()) {
+      const extra = customPowerInput.split(',').map(p => p.trim()).filter(Boolean);
+      finalPowers = Array.from(new Set([...finalPowers, ...extra]));
+    }
+
     const payload = {
       ...(initialEntity ? { id: initialEntity.id } : {}),
       name: name.trim(),
@@ -117,9 +171,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
         ...(locations.trim()
           ? { locations: locations.split(',').map(l => l.trim()).filter(Boolean) }
           : {}),
-        ...(powers.trim()
-          ? { powers: powers.split(',').map(p => p.trim()).filter(Boolean) }
-          : {}),
+        ...(finalPowers.length > 0 ? { powers: finalPowers } : {}),
         ...(notes.trim() ? { notes: notes.trim() } : {}),
       },
     };
@@ -147,7 +199,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800/50 transition-colors"
+            className="p-2 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800/50 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -160,7 +212,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
               <button
                 key={item.type}
                 onClick={() => handleTypeSelect(item.type)}
-                className="w-full flex items-center justify-between p-3.5 rounded-lg border border-zinc-800/80 bg-zinc-900/50 hover:bg-blue-950/20 hover:border-blue-500/40 text-left transition-all group"
+                className="w-full flex items-center justify-between p-3.5 rounded-lg border border-zinc-800/80 bg-zinc-900/50 hover:bg-blue-950/20 hover:border-blue-500/40 text-left transition-all group cursor-pointer"
               >
                 <div>
                   <div className="text-sm font-medium text-white group-hover:text-blue-400 transition-colors">
@@ -185,7 +237,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setSelectedType(null)}
-                  className="text-xs text-zinc-400 hover:text-zinc-200 underline"
+                  className="text-xs text-zinc-400 hover:text-zinc-200 underline cursor-pointer"
                 >
                   Alterar tipo
                 </button>
@@ -238,18 +290,133 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
 
             {/* Specific fields depending on type */}
             {selectedType === 'personagem' && (
-              <div>
-                <label className="block text-zinc-300 font-medium mb-1.5">
-                  Papel / Título
-                </label>
-                <input
-                  type="text"
-                  value={role}
-                  onChange={e => setRole(e.target.value)}
-                  placeholder="Ex: Herdeiro de Avadilla e Líder da Resistência"
-                  className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800 text-white placeholder-zinc-600 focus:outline-none focus:border-blue-500 text-sm"
-                />
-              </div>
+              <>
+                <div>
+                  <label className="block text-zinc-300 font-medium mb-1.5">
+                    Papel / Título
+                  </label>
+                  <input
+                    type="text"
+                    value={role}
+                    onChange={e => setRole(e.target.value)}
+                    placeholder="Ex: Herdeiro de Avadilla e Líder da Resistência"
+                    className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800 text-white placeholder-zinc-600 focus:outline-none focus:border-blue-500 text-sm"
+                  />
+                </div>
+
+                {/* Poderes e Habilidades (Digitar ou selecionar da aba Poderes) */}
+                <div className="space-y-2.5 p-3 rounded-xl bg-zinc-900/60 border border-zinc-800">
+                  <div className="flex items-center justify-between">
+                    <label className="text-zinc-200 font-medium flex items-center gap-1.5 text-xs">
+                      <Zap className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Poderes e Habilidades do Personagem</span>
+                    </label>
+                    {selectedPowers.length > 0 && (
+                      <span className="text-[10px] font-mono text-blue-400">
+                        {selectedPowers.length} {selectedPowers.length === 1 ? 'poder selecionado' : 'poderes selecionados'}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Selected Powers Chips */}
+                  {selectedPowers.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-0.5">
+                      {selectedPowers.map((p, idx) => (
+                        <span
+                          key={idx}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-950/70 border border-blue-600/40 text-blue-200 text-xs shadow-sm"
+                        >
+                          <Zap className="w-3 h-3 text-blue-400 shrink-0" />
+                          <span>{p}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemovePower(p)}
+                            className="text-blue-400 hover:text-white p-0.5 rounded transition-colors cursor-pointer"
+                            title={`Remover ${p}`}
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Campo para digitar novo poder */}
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={customPowerInput}
+                      onChange={e => setCustomPowerInput(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddCustomPower();
+                        }
+                      }}
+                      placeholder="Digite um poder e pressione Enter ou clique em +"
+                      className="flex-1 px-3 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-white placeholder-zinc-600 focus:outline-none focus:border-blue-500 text-xs"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddCustomPower}
+                      disabled={!customPowerInput.trim()}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1 shrink-0 ${
+                        customPowerInput.trim()
+                          ? 'bg-blue-600 hover:bg-blue-500 text-white cursor-pointer'
+                          : 'bg-zinc-800/60 text-zinc-600 cursor-not-allowed'
+                      }`}
+                      title="Adicionar poder digitado"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Adicionar</span>
+                    </button>
+                  </div>
+
+                  {/* Seleção rápida dos poderes já cadastrados na aba Poderes */}
+                  <div className="pt-2 border-t border-zinc-800/70 space-y-1.5">
+                    <div className="text-[11px] font-medium text-zinc-400 flex items-center justify-between">
+                      <span>Ou selecione poderes já cadastrados na aba Poderes:</span>
+                      <span className="font-mono text-[10px] text-zinc-500">
+                        {registeredPowers.length} {registeredPowers.length === 1 ? 'disponível' : 'disponíveis'}
+                      </span>
+                    </div>
+
+                    {registeredPowers.length === 0 ? (
+                      <p className="text-[11px] text-zinc-500 italic py-1">
+                        Nenhum poder cadastrado na aba "Poderes" ainda. Você pode digitar os poderes no campo acima ou cadastrar poderes na Memória para reutilizá-los aqui com 1 clique.
+                      </p>
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-1.5 bg-zinc-950/60 rounded-lg border border-zinc-800/60">
+                        {registeredPowers.map(powEntity => {
+                          const isSelected = selectedPowers.some(
+                            p => p.toLowerCase() === powEntity.name.toLowerCase()
+                          );
+                          return (
+                            <button
+                              key={powEntity.id}
+                              type="button"
+                              onClick={() => handleToggleRegisteredPower(powEntity)}
+                              className={`px-2.5 py-1 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
+                                isSelected
+                                  ? 'bg-blue-600 text-white shadow-sm border border-blue-400'
+                                  : 'bg-zinc-800/70 hover:bg-zinc-700/80 text-zinc-300 border border-zinc-700/60 hover:text-white'
+                              }`}
+                              title={powEntity.description}
+                            >
+                              {isSelected ? (
+                                <Check className="w-3 h-3 text-white" />
+                              ) : (
+                                <Plus className="w-3 h-3 text-zinc-400" />
+                              )}
+                              <span>{powEntity.name}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
             )}
 
             {(selectedType === 'evento' || selectedType === 'personagem') && (
@@ -320,9 +487,10 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
               <label className="block text-zinc-300 font-medium mb-1.5">
                 Status no Cânone
               </label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                 {[
                   { id: 'canon', label: 'Cânone', desc: 'Oficial' },
+                  { id: 'proposta', label: 'Proposta', desc: 'Produção' },
                   { id: 'rascunho', label: 'Rascunho', desc: 'Ideia' },
                   { id: 'conflitante', label: 'Conflitante', desc: 'Divergência' },
                   { id: 'antiga', label: 'Antiga', desc: 'Substituída' },
@@ -331,7 +499,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                     key={opt.id}
                     type="button"
                     onClick={() => setStatus(opt.id as CanonStatus)}
-                    className={`py-2 px-3 rounded-lg border text-left transition-all ${
+                    className={`py-2 px-3 rounded-lg border text-left transition-all cursor-pointer ${
                       status === opt.id
                         ? 'border-blue-500 bg-blue-950/30 text-white'
                         : 'border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:border-zinc-700'
@@ -365,13 +533,13 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 rounded-lg text-zinc-400 hover:text-white transition-colors"
+                className="px-4 py-2 rounded-lg text-zinc-400 hover:text-white transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
-                className="flex items-center gap-1.5 px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium transition-colors shadow-sm"
+                className="flex items-center gap-1.5 px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium transition-colors shadow-sm cursor-pointer"
               >
                 <Check className="w-4 h-4" />
                 <span>Salvar na memória</span>

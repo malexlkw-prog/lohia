@@ -1,12 +1,15 @@
 import React from 'react';
-import { MessageSquare, Database, Calendar, Plus, Settings, X, AlertTriangle } from 'lucide-react';
+import { MessageSquare, Users, Database, Calendar, Plus, Settings, X, AlertTriangle, History } from 'lucide-react';
 
-export type ActiveTab = 'chat' | 'memoria' | 'timeline' | 'configuracoes';
+export type ActiveTab = 'chat' | 'personagens' | 'memoria' | 'timeline' | 'configuracoes';
 
 interface SidebarProps {
   activeTab: ActiveTab;
   setActiveTab: (tab: ActiveTab) => void;
   onOpenAdd: () => void;
+  onOpenHistory: () => void;
+  savedChatsCount?: number;
+  charactersCount?: number;
   hasContradictions: boolean;
   onOpenContradictions: () => void;
   mobileOpen: boolean;
@@ -17,19 +20,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
   activeTab,
   setActiveTab,
   onOpenAdd,
+  onOpenHistory,
+  savedChatsCount = 0,
+  charactersCount,
   hasContradictions,
   onOpenContradictions,
   mobileOpen,
   setMobileOpen,
 }) => {
-  const navItems: { id: ActiveTab; label: string; icon: React.ElementType }[] = [
-    { id: 'chat', label: 'Chat', icon: MessageSquare },
-    { id: 'memoria', label: 'Memória', icon: Database },
-    { id: 'timeline', label: 'Linha do tempo', icon: Calendar },
+  const navItems = [
+    { id: 'chat' as ActiveTab, label: 'Chat', icon: MessageSquare, isAction: false },
+    { id: 'historico' as const, label: 'Chats anteriores', icon: History, isAction: true },
+    { id: 'personagens' as ActiveTab, label: 'Personagens', icon: Users, isAction: false, badge: charactersCount },
+    { id: 'memoria' as ActiveTab, label: 'Memória', icon: Database, isAction: false },
+    { id: 'timeline' as ActiveTab, label: 'Linha do tempo', icon: Calendar, isAction: false },
   ];
 
-  const handleNavClick = (tab: ActiveTab) => {
-    setActiveTab(tab);
+  const handleNavClick = (item: (typeof navItems)[0]) => {
+    if (item.isAction && item.id === 'historico') {
+      onOpenHistory();
+      setMobileOpen(false);
+      return;
+    }
+    setActiveTab(item.id as ActiveTab);
     setMobileOpen(false);
   };
 
@@ -52,7 +65,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Top: Brand Header */}
         <div className="p-5 flex items-center justify-between border-b border-zinc-800/60">
           <button
-            onClick={() => handleNavClick('chat')}
+            onClick={() => {
+              setActiveTab('chat');
+              setMobileOpen(false);
+            }}
             className="flex items-center gap-2.5 text-left group"
           >
             <div className="w-8 h-8 rounded-lg bg-blue-600/10 border border-blue-500/30 flex items-center justify-center text-blue-400 font-black text-sm tracking-wider group-hover:border-blue-400 transition-colors">
@@ -68,7 +84,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
             </div>
           </button>
-
           <button
             onClick={() => setMobileOpen(false)}
             className="p-1.5 text-zinc-500 hover:text-white lg:hidden rounded"
@@ -81,20 +96,39 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="p-3 space-y-1 flex-1 overflow-y-auto">
           {navItems.map(item => {
             const Icon = item.icon;
-            const isActive = activeTab === item.id;
-
+            const isActive = !item.isAction && activeTab === item.id;
             return (
               <button
                 key={item.id}
-                onClick={() => handleNavClick(item.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-all ${
+                onClick={() => handleNavClick(item)}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-medium transition-all ${
                   isActive
                     ? 'bg-blue-600/10 border border-blue-500/30 text-white'
                     : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60'
                 }`}
               >
-                <Icon className={`w-4 h-4 ${isActive ? 'text-blue-400' : 'text-zinc-500'}`} />
-                <span>{item.label}</span>
+                <div className="flex items-center gap-3">
+                  <Icon
+                    className={`w-4 h-4 ${
+                      isActive
+                        ? 'text-blue-400'
+                        : item.id === 'historico'
+                        ? 'text-purple-400'
+                        : 'text-zinc-500'
+                    }`}
+                  />
+                  <span>{item.label}</span>
+                </div>
+                {item.id === 'historico' && savedChatsCount > 0 && (
+                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-zinc-800 text-zinc-400">
+                    {savedChatsCount}
+                  </span>
+                )}
+                {item.id === 'personagens' && typeof charactersCount === 'number' && charactersCount > 0 && (
+                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-blue-950/60 border border-blue-800/40 text-blue-300">
+                    {charactersCount}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -138,7 +172,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Bottom: Configurações */}
         <div className="p-3 border-t border-zinc-800/60">
           <button
-            onClick={() => handleNavClick('configuracoes')}
+            onClick={() => {
+              setActiveTab('configuracoes');
+              setMobileOpen(false);
+            }}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-all ${
               activeTab === 'configuracoes'
                 ? 'bg-blue-600/10 border border-blue-500/30 text-white'
